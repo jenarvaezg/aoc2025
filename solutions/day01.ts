@@ -1,6 +1,9 @@
+import { readDayInput } from "./utils";
+
+const input = readDayInput("day01");
+
 function solve(input: string): number {
-  // Tu lógica aquí
   return input.length;
 }
 
-console.log(solve("testInput"));
+console.log(solve(input));

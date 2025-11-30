@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "run:day": "ts-node scripts/run_day.ts"
+    "run:day": "ts-node run_day.ts"
   },
   "keywords": [],
   "author": "",
