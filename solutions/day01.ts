@@ -1,7 +1,7 @@
-export function part1(input: string): any {
-  // lógica parte 1
+export function part1(input: string): number {
+    return 1
 }
 
-export function part2(input: string): any {
-  // lógica parte 2
+export function part2(input: string): number {
+    return 2
 }
