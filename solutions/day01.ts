@@ -1,9 +1,7 @@
-import { readDayInput } from "./utils";
-
-const input = readDayInput("day01");
-
-function solve(input: string): number {
-  return input.length;
+export function part1(input: string): any {
+  // lógica parte 1
 }
 
-console.log(solve(input));
+export function part2(input: string): any {
+  // lógica parte 2
+}
