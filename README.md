@@ -1,6 +1,6 @@
 # Advent of Code 2025 - TypeScript Solutions
 
-This repository contains my personal attempt at solving the [Advent of Code 2025](https://adventofcode.com/) programming challenges using **TypeScript**.
+This repository contains my personal attempt at solving the [Advent of Code 2025](https://adventofcode.com/2025) programming challenges using **TypeScript**.
 
 ## Project Structure
 
