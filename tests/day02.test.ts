@@ -19,7 +19,7 @@ describe('day02', () => {
   test('part1 - real input', () => {
     expect(part1(realInput)).toBe(40055209690);
   });
-  // test('part2 - real input', () => {
-  //   expect(part2(realInput)).toBe(6770);
-  // });
+  test('part2 - real input', () => {
+    expect(part2(realInput)).toBe(50857215650);
+  });
 });
