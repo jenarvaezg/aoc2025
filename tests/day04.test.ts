@@ -2,7 +2,7 @@ import { part1, part2 } from '../solutions/day04';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-describe('day03', () => {
+describe('day04', () => {
   const exampleInput = `..@@.@@@@.
 @@@.@.@.@@
 @@@@@.@.@@
