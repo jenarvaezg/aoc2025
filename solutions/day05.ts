@@ -13,15 +13,15 @@ export function part1(input: string): number {
 type Range = Number[];
 
 function mergeRanges(ranges: Range[], range: Range): Range[] {
-  const lastEnd = ranges.at(-1)[1];
+  const lastEnd = ranges.at(-1)![1]!;
 
   // If range end is below last end, do nothing
-  if (range[1] <= lastEnd) return ranges;
+  if (range[1]! <= lastEnd) return ranges;
   // If range start is over last end, concat new range
-  if (range[0] > lastEnd) return ranges.concat([range]);
+  if (range[0]! > lastEnd) return ranges.concat([range]);
 
   // Otherwise, extend current last range
-  ranges.at(-1)[1] = range[1];
+  ranges.at(-1)![1] = range[1]!;
 
   return ranges;
 }
