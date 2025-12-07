@@ -3,26 +3,22 @@ interface Coord {
   y: number;
 }
 
-const addRay = (seen: Set<string>, rays: Coord[], lineLength: number) => (coord: Coord) => {
-  if (coord.x < 0 || coord.x >= lineLength) return; // outside grid
-  const key = `${coord.x},${coord.y}`;
-  if (seen.has(key)) return;
-  seen.add(key);
-  rays.push(coord);
-};
-
 export function part1(input: string): number {
   const grid = input.split('\n').map((line) => line.split(''));
   const startCoord = { x: grid[0]?.indexOf('S')!, y: 0 };
   let splitCount = 0;
-  // Keep rays per row, deduping by x,y so the same ray is not processed twice
   let rays: Coord[][] = [[startCoord]];
 
   for (let y = 1; y < grid.length; y++) {
     const raysAbove = rays[y - 1]!;
     const currentRays: Coord[] = [];
     const seen = new Set<string>();
-    const pushRay = addRay(seen, currentRays, grid[y]!.length);
+    const pushRay = (coord: Coord) => {
+      const key = `${coord.x},${coord.y}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      currentRays.push(coord);
+    };
     const currentLine = grid[y]!;
 
     for (const rayAbove of raysAbove) {
@@ -49,36 +45,22 @@ export function part2(input: string): number {
   // timelines[y] is a map of x -> number of timelines reaching (x, y)
   let timelines: Map<number, number>[] = [new Map([[startX, 1]])];
 
-  const addCount = (
-    map: Map<number, number>,
-    x: number,
-    y: number,
-    count: number,
-    lineLength: number
-  ) => {
-    if (x < 0 || x >= lineLength) return;
-    map.set(x, (map.get(x) ?? 0) + count);
-  };
-
   for (let y = 1; y < grid.length; y++) {
     const prev = timelines[y - 1]!;
     const current = new Map<number, number>();
-    const lineLength = grid[y]!.length;
+    const addCount = (x: number, count: number) => {
+      current.set(x, (current.get(x) ?? 0) + count);
+    };
     for (const [x, count] of prev.entries()) {
       if (grid[y]![x] === '.') {
-        addCount(current, x, y, count, lineLength);
+        addCount(x, count);
       } else {
-        // Split timelines to left and right
-        addCount(current, x - 1, y, count, lineLength);
-        addCount(current, x + 1, y, count, lineLength);
+        addCount(x - 1, count);
+        addCount(x + 1, count);
       }
     }
     timelines.push(current);
   }
 
-  // Total active timelines once we finish traversing the grid
-  const lastRow = timelines[timelines.length - 1]!;
-  let total = 0;
-  for (const count of lastRow.values()) total += count;
-  return total;
+  return timelines[timelines.length - 1]!.values().reduce((a, c) => a + c, 0);
 }
