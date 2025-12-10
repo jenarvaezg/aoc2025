@@ -23,6 +23,8 @@ export function part1(input: string): number {
 
 type Point = [number, number];
 type Edge = { x1: number; y1: number; x2: number; y2: number; vertical: boolean };
+type VerticalEdge = Edge & { vertical: true };
+type HorizontalEdge = Edge & { vertical: false };
 
 const pointOnSegment = ([px, py]: Point, { x1, y1, x2, y2 }: Edge) => {
   const withinX = Math.min(x1, x2) <= px && px <= Math.max(x1, x2);
@@ -31,20 +33,27 @@ const pointOnSegment = ([px, py]: Point, { x1, y1, x2, y2 }: Edge) => {
   return cross === 0 && withinX && withinY;
 };
 
-const pointInPolygon = ([px, py]: Point, polygon: Point[]) => {
+
+const pointInPolygon = ([px, py]: Point, polygon: Point[], cache: Map<string, boolean>) => {
+  const key = `${px},${py}`;
+  const cached = cache.get(key);
+  if (cached !== undefined) return cached;
+
   let inside = false;
   for (let i = 0; i < polygon.length; i++) {
     const [x1, y1] = polygon[i]!;
     const [x2, y2] = polygon[(i + 1) % polygon.length]!;
 
     const edge = { x1, y1, x2, y2, vertical: x1 === x2 };
-    if (pointOnSegment([px, py], edge)) return true; // boundary counts as inside
+    if (pointOnSegment([px, py], edge)) {
+      cache.set(key, true);
+      return true; // boundary counts as inside
+    }
 
-    const intersects =
-      y1 > py !== y2 > py &&
-      px <= ((x2 - x1) * (py - y1)) / (y2 - y1) + x1; // horizontal ray to the right
+    const intersects = y1 > py !== y2 > py && px <= ((x2 - x1) * (py - y1)) / (y2 - y1) + x1; // horizontal ray to the right
     if (intersects) inside = !inside;
   }
+  cache.set(key, inside);
   return inside;
 };
 
@@ -53,6 +62,29 @@ const buildPolygonEdges = (poly: Point[]): Edge[] =>
     const [x2, y2] = poly[(i + 1) % poly.length]!;
     return { x1, y1, x2, y2, vertical: x1 === x2 };
   });
+
+const splitEdges = (edges: Edge[]) => {
+  const vertical: VerticalEdge[] = [];
+  const horizontal: HorizontalEdge[] = [];
+  for (const edge of edges) {
+    if (edge.vertical) vertical.push(edge as VerticalEdge);
+    else horizontal.push(edge as HorizontalEdge);
+  }
+  vertical.sort((a, b) => a.x1 - b.x1);
+  horizontal.sort((a, b) => a.y1 - b.y1);
+  return { vertical, horizontal };
+};
+
+const lowerBound = <T>(arr: T[], value: number, selector: (item: T) => number) => {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (selector(arr[mid]!) < value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+};
 
 const edgeIntersectionType = (rect: Edge, poly: Edge): 'none' | 'overlap' | 'corner' | 'cross' => {
   const rectVert = rect.vertical;
@@ -87,7 +119,14 @@ const edgeIntersectionType = (rect: Edge, poly: Edge): 'none' | 'overlap' | 'cor
   return isRectCorner || isPolyEndpoint ? 'corner' : 'cross';
 };
 
-const rectangleInside = (p1: Point, p2: Point, polygon: Point[], polygonEdges: Edge[]) => {
+const rectangleInside = (
+  p1: Point,
+  p2: Point,
+  polygon: Point[],
+  verticalEdges: VerticalEdge[],
+  horizontalEdges: HorizontalEdge[],
+  cache: Map<string, boolean>
+) => {
   const minX = Math.min(p1[0], p2[0]);
   const maxX = Math.max(p1[0], p2[0]);
   const minY = Math.min(p1[1], p2[1]);
@@ -99,7 +138,7 @@ const rectangleInside = (p1: Point, p2: Point, polygon: Point[], polygonEdges: E
     [maxX, minY],
     [maxX, maxY],
   ];
-  if (!corners.every((pt) => pointInPolygon(pt, polygon))) return false;
+  if (!corners.every((pt) => pointInPolygon(pt, polygon, cache))) return false;
 
   const rectEdges: Edge[] = [
     { x1: minX, y1: minY, x2: maxX, y2: minY, vertical: false },
@@ -109,9 +148,32 @@ const rectangleInside = (p1: Point, p2: Point, polygon: Point[], polygonEdges: E
   ];
 
   for (const rectEdge of rectEdges) {
-    for (const polyEdge of polygonEdges) {
-      const type = edgeIntersectionType(rectEdge, polyEdge);
-      if (type === 'cross') return false;
+    if (rectEdge.vertical) {
+      const yMin = Math.min(rectEdge.y1, rectEdge.y2);
+      const yMax = Math.max(rectEdge.y1, rectEdge.y2);
+      const start = lowerBound(horizontalEdges, yMin, (e) => e.y1);
+      for (let idx = start; idx < horizontalEdges.length; idx++) {
+        const polyEdge = horizontalEdges[idx]!;
+        if (polyEdge.y1 > yMax) break;
+        if (rectEdge.x1 < Math.min(polyEdge.x1, polyEdge.x2) || rectEdge.x1 > Math.max(polyEdge.x1, polyEdge.x2)) {
+          continue;
+        }
+        const type = edgeIntersectionType(rectEdge, polyEdge);
+        if (type === 'cross') return false;
+      }
+    } else {
+      const xMin = Math.min(rectEdge.x1, rectEdge.x2);
+      const xMax = Math.max(rectEdge.x1, rectEdge.x2);
+      const start = lowerBound(verticalEdges, xMin, (e) => e.x1);
+      for (let idx = start; idx < verticalEdges.length; idx++) {
+        const polyEdge = verticalEdges[idx]!;
+        if (polyEdge.x1 > xMax) break;
+        if (rectEdge.y1 < Math.min(polyEdge.y1, polyEdge.y2) || rectEdge.y1 > Math.max(polyEdge.y1, polyEdge.y2)) {
+          continue;
+        }
+        const type = edgeIntersectionType(rectEdge, polyEdge);
+        if (type === 'cross') return false;
+      }
     }
   }
   return true;
@@ -124,6 +186,8 @@ export function part2(input: string): number {
     .map((line) => line.split(',').map(Number));
 
   const polygonEdges = buildPolygonEdges(red);
+  const { vertical: verticalEdges, horizontal: horizontalEdges } = splitEdges(polygonEdges);
+  const insideCache = new Map<string, boolean>();
 
   let best = 0;
   for (let i = 0; i < red.length; i++) {
@@ -134,7 +198,7 @@ export function part2(input: string): number {
       const height = Math.abs(p1[1] - p2[1]) + 1;
       const area = width * height;
       if (area <= best) continue;
-      if (rectangleInside(p1, p2, red, polygonEdges)) {
+      if (rectangleInside(p1, p2, red, verticalEdges, horizontalEdges, insideCache)) {
         best = area;
       }
     }
